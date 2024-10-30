@@ -1,3 +1,4 @@
+// Функція для конвертації HTML в JSON та відображення результату
 function convertHtml2JsonAndSet() {
     const htmlTextAreaValue = document.getElementById("html").value;
     const jsonObj = html2json(htmlTextAreaValue);
@@ -5,17 +6,60 @@ function convertHtml2JsonAndSet() {
     jsonArea.textContent = JSON.stringify(jsonObj, null, 2);
 }
 
-/* 
-  Update this function to convert html into json object.
-  You can rewrite it completely, just be sure it accepts htmlText as string and outputs json object.
-*/
+// Основна функція для конвертації HTML в JSON
 function html2json(htmlText) {
-    return {
-        "Conversion results": "should be instead of this json obj",
-        "Just to show that it is dynamic value (input length)": htmlText.length,
-    };
+    const tagRegex = /<\/?([a-zA-Z0-9\-]+)(\s[^>]*)?>|([^<]+)/g;
+
+    function parseAttributes(attrStr) {
+        const attributes = {};
+        const attrRegex = /([a-zA-Z0-9\-]+)="([^"]*)"/g;
+        let match;
+        while ((match = attrRegex.exec(attrStr)) !== null) {
+            attributes[match[1]] = match[2];
+        }
+        return attributes;
+    }
+
+    function parseNode() {
+        const stack = [];
+        let result = [];
+        let match;
+
+        while ((match = tagRegex.exec(htmlText)) !== null) {
+            const [fullMatch, tagName, attrString, textContent] = match;
+
+            if (textContent) {
+                const trimmedText = textContent.trim();
+                if (trimmedText) {
+                    if (stack.length > 0) {
+                        stack[stack.length - 1].children.push({ text: trimmedText });
+                    } else {
+                        result.push({ text: trimmedText });
+                    }
+                }
+            } else if (tagName && fullMatch.startsWith("</")) {
+                const element = stack.pop();
+                if (stack.length > 0) {
+                    stack[stack.length - 1].children.push(element);
+                } else {
+                    result.push(element);
+                }
+            } else if (tagName) {
+                const newElement = {
+                    tag: tagName.toLowerCase(),
+                    attributes: attrString ? parseAttributes(attrString) : {},
+                    children: []
+                };
+                stack.push(newElement);
+            }
+        }
+        return result;
+    }
+
+    return parseNode();
 }
 
+// Функції для відображення прикладів HTML в текстовому полі
 function showExample1() {
     const htmlExample = `<!DOCTYPE html>
 <html lang="en">
@@ -51,41 +95,23 @@ function showExample1() {
     </footer>
     <script src="script.js"></script>
 </body>
-</html>
-`;
-    const jsonContent = {
-        "Comment 1":
-            "You have to think about how to take into account various html inputs so your json structure will cover them all and handle different cases.",
-        "Comment 2":
-            "When you make any choice in terms of selecting specific json structure for conversion - be ready to provide reasoning behind such choice.",
-    };
-
+</html>`;
     document.getElementById("html").value = htmlExample;
     document.getElementById("json").textContent = JSON.stringify(
-        jsonContent,
-        null,
-        2
+        { "Comment": "This example illustrates a full HTML document." },
+        null, 2
     );
 }
 
 function showExample2() {
     const htmlExample = `<div>
 <p>Hello world!</p>
-  <button>Click me!</button>
-  <textarea>Some very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long string.</textarea>
-</div>
-`;
-    const jsonContent = {
-        "Comment 1":
-            "You have to think about how to take into account various html inputs so your json structure will cover them all and handle different cases.",
-        "Comment 2":
-            "When you make any choice in terms of selecting specific json structure for conversion - be ready to provide reasoning behind such choice.",
-    };
-
+<button>Click me!</button>
+<textarea>Some very very long text...</textarea>
+</div>`;
     document.getElementById("html").value = htmlExample;
     document.getElementById("json").textContent = JSON.stringify(
-        jsonContent,
-        null,
-        2
+        { "Comment": "This example has nested elements with different tags." },
+        null, 2
     );
 }
